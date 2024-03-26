@@ -1,0 +1,195 @@
+/* Theme style settings */
+:root
+{
+    --link: hsl(199, 50%, 65%);
+    --focus: lightblue;
+    --primary: hsl(0, 0%, 100%);
+
+    --background: hsl(0, 0%, 7%);
+    --surface: hsl(0, 0%, 7%);
+    --level-1: hsl(0, 0%, 12%);
+    --level-2: hsl(0, 0%, 18%);
+    --level-3: hsl(0, 0%, 22%);
+
+    --highEmphasis: hsl(0, 0%, 87%);
+    --mediumEmphasis: hsl(0, 0%, 65%);
+    --lowEmphasis: hsl(0, 0%, 58%);
+    --onLight: hsl(0, 0%, 0%);
+
+    --critical: hsl(350, 50%, 50%);
+    --success: hsl(100, 86%, 66%);
+    --error: hsl(350, 50%, 60%);
+    --onError: hsl(0, 0%, 4%);
+}
+
+@media (prefers-color-scheme: light) {
+    :root
+    {
+        --link: hsl(215, 98%, 37%);
+        --focus: lightblue;
+        --primary: hsl(48, 100%, 50%);
+    
+        --background: hsl(0, 0%, 95%);
+        --surface: hsl(0, 0%, 95%);
+        --level-1: hsl(0, 0%, 90%);
+        --level-2: hsl(0, 0%, 86%);
+        --level-3: hsl(0, 0%, 82%);
+    
+        --highEmphasis: hsl(0, 0%, 5%);
+        --mediumEmphasis: hsl(0, 0%, 15%);
+        --lowEmphasis: hsl(0, 0%, 35%);
+        --onLight: hsl(0, 0%, 100%);
+    
+        --critical: hsl(350, 50%, 50%);
+        --success: hsl(100, 86%, 66%);
+        --error: hsl(350, 50%, 60%);
+        --onError: hsl(0, 0%, 4%);
+    }
+
+    section, details, button
+    {
+        box-shadow: 0 0 2px 0px var(--lowEmphasis);
+    }
+}
+
+html {
+    background: var(--background);
+    color: var(--text);
+    font-family: Myriad Roman,Syntax,Arial,Helvetica;
+}
+
+main {
+    background: var(--surface);
+}
+
+section {
+    background: var(--level-1);
+}
+
+details {
+    background: var(--level-1);
+}
+
+details > summary {
+    background-color: var(--level-1);
+}
+
+details > summary > p {
+    color: var(--mediumEmphasis);
+}
+
+details[open] > summary {
+    background-color: var(--level-3);
+}
+
+details section, section section {
+    background-color: var(--level-2);
+}
+
+h1, h2, h3, h4, h5, h6, summary, strong {
+    color: var(--highEmphasis);
+}
+
+p, li {
+    color: var(--mediumEmphasis);
+}
+
+strong.red { 
+    color: var(--critical); 
+}
+
+a, a > strong {
+    color: var(--link);
+    cursor: pointer;
+}
+
+a.hide-link
+{
+    text-decoration: none;
+    color: var(--mediumEmphasis);
+}
+
+a.hide-link:hover
+{
+    text-decoration: underline;
+    color: var(--link);
+}
+
+
+code {
+    display: inline-block;
+    padding: 0.2em;
+    border-radius: 5px;
+    background-color: var(--highEmphasis);
+    color: var(--onLight)
+}
+
+output {
+    display: inline-block;
+    width: 100%;
+    max-height: 10rem;
+    overflow-y: auto;
+    padding: 0.2em;
+    border-radius: 5px;
+    background-color: var(--highEmphasis);
+    color: var(--onLight)
+}
+
+.copied {
+    animation: copy 0.75s ease-in;
+}
+
+.break-line
+{
+    background: var(--primary);
+}
+
+img.logo
+{
+    filter: drop-shadow(0px 0px 2px var(--mediumEmphasis));
+}
+
+label
+{
+    color: var(--highEmphasis);
+}
+
+input, select
+{
+    background-color: var(--level-2);
+    color: var(--mediumEmphasis);
+    border: none;
+}
+
+input:user-invalid, select:user-invalid, textarea:user-invalid {
+    outline: 0.15rem solid var(--error);
+}
+
+input + span {
+    position: relative;
+}
+  
+input + span::before {
+    position: absolute;
+    right: 0.5rem;
+    top: 0;
+}
+
+input:user-invalid + span::before, textarea:user-invalid + span::before {
+    content: "✖";
+    color: red;
+}
+
+input:user-valid + span::before, textarea:user-invalid + span::before {
+    content: "✓";
+    color: green;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: 0.15rem solid var(--focus);
+}
+
+@keyframes copy {
+    from {background-color: var(--success);}
+    to {background-color: var(--highEmphasis)}
+}
