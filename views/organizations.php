@@ -55,6 +55,7 @@
         else
         {
             $data = array(
+                'id' => $rso['id'],
                 'name' => $rso['name'],
                 'description' => $rso['description'],
                 'image' => $rso['image_id'] != null ? $image : null

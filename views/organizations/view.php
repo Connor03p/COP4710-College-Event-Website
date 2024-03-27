@@ -2,20 +2,34 @@
 <?php
     if (isset($_POST['join_member']))
     {
-        $sql = "INSERT INTO user_rso (user_id, rso_id) VALUES (?, ?)";
+        $sql = "INSERT INTO user_rso (user_id, rso_id, role) VALUES (?, ?, 'Member')";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ii", $_SESSION['user']['id'], $data['id']);
+        $stmt->execute();
+    }
+    else if (isset($_POST['join_admin']))
+    {
+        $sql = "INSERT INTO user_rso (user_id, rso_id, role) VALUES (?, ?, 'Admin')";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ii", $_SESSION['user']['id'], $data['id']);
+        $stmt->execute();
+    }
+    else if (isset($_POST['leave_rso']))
+    {
+        $sql = "DELETE FROM user_rso WHERE user_id = ? AND rso_id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ii", $_SESSION['user']['id'], $data['id']);
         $stmt->execute();
     }
 
     // Check if user is in RSO
-    $sql = "SELECT * FROM user_rso WHERE user_id = ? AND rso_id = ?";
+    $sql = "SELECT R.role FROM user_rso R WHERE user_id = ? AND rso_id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $_SESSION['user']['id'], $data['id']);
     $stmt->execute();
     $result = $stmt->get_result();
     $isInRSO = $result->num_rows > 0;
-    $userRole = $result->fetch_assoc()['role'];
+    $role = $result->fetch_assoc();
 
     // Get admin of RSO
     $sql = "SELECT U.id, U.username FROM user_rso R, users U WHERE R.user_id = U.id AND R.rso_id = ? AND R.role = 'Admin'";
@@ -53,19 +67,15 @@
             <p class="center"><?=$data['description']?></p>
             <br>
             
-            <?php if ($isInRSO): ?>
-                <p class="center">You are already in this RSO</p>
-            <?php else: ?>
-                <form method="POST">
-                    <?php if ($isInRSO): ?>
-                        <input type="submit" name="leave_rso" value="Leave RSO">                    
-                    <?php elseif (!$hasAdmin && $_SESSION['user']['role'] == 'Admin'): ?>
-                        <input type="submit" name="join_admin" value="Join as Admin">
-                    <?php else: ?>
-                        <input type="submit" name="join_member" value="Join RSO">
-                    <?php endif; ?>
-                </form>
-            <?php endif; ?>
+            <form method="POST">
+                <?php if ($isInRSO): ?>
+                    <input type="submit" name="leave_rso" value="Leave RSO">                    
+                <?php elseif (!$hasAdmin && $_SESSION['user']['role'] == 'Admin'): ?>
+                    <input type="submit" name="join_admin" value="Join as Admin">
+                <?php else: ?>
+                    <input type="submit" name="join_member" value="Join RSO">
+                <?php endif; ?>
+            </form>
 
             <?php include $dir['views'] . 'footer.php'; ?>
         </main>
