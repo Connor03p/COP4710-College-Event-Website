@@ -1,3 +1,19 @@
+<?php
+    $query = "SELECT e.id, e.title, e.summary
+    FROM events e
+    LEFT JOIN public_events pe ON e.id = pe.event_id
+    LEFT JOIN private_events pv ON e.id = pv.event_id
+    LEFT JOIN rso_events re ON e.id = re.event_id
+    LEFT JOIN university_students us ON pv.university_id = us.university_id
+    LEFT JOIN rso_students rs ON re.rso_id = rs.rso_id
+    LEFT JOIN students s ON us.student_id = s.user_id OR rs.student_id = s.user_id
+    WHERE pe.event_id IS NOT NULL OR pv.university_id IS NULL OR rs.rso_id IS NULL OR s.user_id = ?
+    ";
+    $query = $conn->prepare($query);
+    $query->bind_param("i", $_SESSION['user']['university_id']);
+    $query->execute();
+    $data_events = $query->get_result();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -50,38 +66,15 @@
 
 
         <div id="EventList-All">
-            <?php
-            $sql = "SELECT * FROM events WHERE university_id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $_SESSION['university']['id']);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            ?>
-
-            <?php if ($result->num_rows > 0): ?>
+            <?php if ($data_events->num_rows > 0): ?>
                 <?php
-                while ($row = $result->fetch_assoc()) {
-                    echo "<details class='event'>";
-                    echo "  <summary class='event'>";
-                    echo "      <div>";
-                    echo "          <h3 class='event-title'>" . $row['title'] . "</h3>";
-                    echo "          <p class='event-date'>" . $row['date_start'] . "</p>";
-                    echo "      </div>";
-                    echo "      <a href='http://" . $_SERVER['HTTP_HOST'] . "/events?id=" . $row['id'] . "'>";
-                    echo "          " . file_get_contents($dir['img'] . "arrow-right-solid.svg");
-                    echo "      </a>";
-                    echo "  </summary>";
-                    echo "  <div class='content'>";
-
-                    if (isset($row['link']) && $row['link'] != "")
-                        echo "      <a class='event-link' href='" . $row['link'] . "'>" . $row['link'] . "</a>";
-
-                    if (isset($row['description']) && $row['description'] != "")
-                        echo "      <p class='event-description'>" . $row['description'] . "</p>";
-
-                    echo "      <button class='event-attend'>Attend</button>";
-                    echo "  </div>";
-                    echo "</details>";
+                while ($row = $data_events->fetch_assoc()) {
+                    echo "<a href='http://cop4710/events?id=" . $row['id'] . "'>";
+                    echo "  <section>";
+                    echo "      <h3 class='event-title'>" . $row['title'] . "</h3>";
+                    echo "      <p class='event-summary'>" . $row['summary'] . "</p>";
+                    echo "  </section>";
+                    echo "</a>";
                 }
                 ?>
             <?php else: ?>

@@ -6,14 +6,14 @@
 <?php // Form Handling
     if (isset($_POST['login'])) 
     {
-        $result = checkLogin();
-        if($result === true)
+        $data_events = checkLogin();
+        if($data_events === true)
         {
             header('location: dashboard');
         }
         else
         {
-            $loginError = $result;
+            $loginError = $data_events;
             $loginUsername = $_POST['username'];
             $loginPassword = $_POST['password'];
         }
@@ -41,12 +41,6 @@
         }
 
         $_SESSION['user'] = $user;
-
-        $query = "SELECT * from universities WHERE id = " . $user['university_id'];
-        $query = $conn->prepare($query);
-        $query->execute();
-        $university = $query->get_result()->fetch_assoc();
-        $_SESSION['university'] = $university;
 
         return $user['username'] == $input_name;
     }

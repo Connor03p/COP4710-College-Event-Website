@@ -8,6 +8,17 @@
         header('location: index.php');   // if not set the user is sendback to login page.
     }
 
+    // Check if url ends with "/create"
+    if (substr($_SERVER['REQUEST_URI'], -7) == '/create')
+    {
+        if ($_SESSION['user']['role'] != 'Super')
+        {
+            header('location: /');
+        }
+        include $dir['views'] . '/universities/create.php';
+        return;
+    }
+
     $university_id = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
     if (isset($university_id))
     {
@@ -29,8 +40,8 @@
     global $conn;
 
     $sql = "SELECT * FROM universities WHERE id = $university_id";
-    $result = $conn->query($sql);
-    $university = $result->fetch_assoc();
+    $data_events = $conn->query($sql);
+    $university = $data_events->fetch_assoc();
 
     if ($university == null)
     {

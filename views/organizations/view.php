@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <?php
-    if (isset($_POST['join_member']))
+    if (isset($_POST['join_student']))
     {
-        $sql = "INSERT INTO user_rso (user_id, rso_id, role) VALUES (?, ?, 'Member')";
+        $sql = "INSERT INTO rso_students (user_id, rso_id) VALUES (?, ?)";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ii", $_SESSION['user']['id'], $data['id']);
         $stmt->execute();
@@ -27,18 +27,18 @@
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $_SESSION['user']['id'], $data['id']);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $isInRSO = $result->num_rows > 0;
-    $role = $result->fetch_assoc();
+    $data_events = $stmt->get_result();
+    $isInRSO = $data_events->num_rows > 0;
+    $role = $data_events->fetch_assoc();
 
     // Get admin of RSO
     $sql = "SELECT U.id, U.username FROM user_rso R, users U WHERE R.user_id = U.id AND R.rso_id = ? AND R.role = 'Admin'";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $data['id']);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $admin = $result->fetch_assoc();
-    $hasAdmin = $result->num_rows > 0;
+    $data_events = $stmt->get_result();
+    $admin = $data_events->fetch_assoc();
+    $hasAdmin = $data_events->num_rows > 0;
 ?>
 
 <html lang="en">
@@ -73,7 +73,7 @@
                 <?php elseif (!$hasAdmin && $_SESSION['user']['role'] == 'Admin'): ?>
                     <input type="submit" name="join_admin" value="Join as Admin">
                 <?php else: ?>
-                    <input type="submit" name="join_member" value="Join RSO">
+                    <input type="submit" name="join_student" value="Join RSO">
                 <?php endif; ?>
             </form>
 

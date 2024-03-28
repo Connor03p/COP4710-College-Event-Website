@@ -18,36 +18,3 @@
         include $dir['views'] . 'events/list.php';
         return;
     }
-
-    require_once $dir['php'] . 'database.php';
-    global $conn;
-
-    try
-    {
-        $sql = "SELECT * FROM events WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $rso_id);
-        $stmt->execute();
-        $rso = $stmt->get_result();
-        $rso = $rso->fetch_assoc();
-
-        if ($rso == null)
-        {
-            echo 'Event not found.';
-        }
-        else
-        {
-            $data = array(
-                'title' => $rso['title'],
-                'date_start' => $rso['date_start'],
-                'date_end' => $rso['date_end'],
-                'location_id' => $rso['location_id'],
-                'description' => $rso['description']
-            );
-            include $dir['views'] . 'student/events/view.php';
-        }
-    }
-    catch (Exception $e)
-    {
-        echo 'Error: ' . $e->getMessage();
-    }

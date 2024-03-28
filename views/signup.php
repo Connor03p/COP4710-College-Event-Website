@@ -1,35 +1,17 @@
 <?php
     global $conn;
 
-    $all_universities = "SELECT U.name FROM `universities` U;";
-    $all_universities = $conn->prepare($all_universities);
-    $all_universities->execute();
-    $all_universities = $all_universities->get_result();
-
     if (isset($_POST['signup']))
     {
         $username = $_POST['username'];
         $email = $_POST['email'];
         $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-        $role = $_POST['role'];
-
-        if ($role == "super")
-            $university_id = NULL;
-        else
-        {
-            $university = $_POST['university'];
-            $query = "SELECT * FROM universities WHERE name = '$university'";
-            $query = $conn->prepare($query);
-            $query->execute();
-            $result = $query->get_result()->fetch_assoc();
-            $university_id = $result['id'];
-        }
-            
+        $role = $_POST['role'];            
         
         try
         {
-            $query = $conn->prepare("INSERT INTO `users` (role, username, email, password, university_id) VALUES (?, ?, ?, ?, ?)");
-            $query->bind_param("sssss", $role, $username, $email, $password, $university_id);
+            $query = $conn->prepare("INSERT INTO `users` (role, username, email, password) VALUES (?, ?, ?, ?)");
+            $query->bind_param("ssss", $role, $username, $email, $password);
             $query->execute();
             $query = $conn->close();
 
@@ -38,6 +20,7 @@
         catch(Exception $e)
         {
             $error = $e->getMessage();
+            $restoreInput = $_POST;
         }
     }
 ?>
@@ -62,7 +45,7 @@
 
             <?php if (isset($error)):; ?>
                 <div class="error">
-                    <p class="center">ERROR: <?php echo $error['message']; ?></p>
+                    <p class="center">ERROR: <?php echo $error; ?></p>
                 </div>
             <?php endif; ?>
 
@@ -76,8 +59,8 @@
             <form id="form-signup" method="POST">
                 <div id="signup-role">
                     <label for="input-role">Role:</label>
-                    <select id="input-role" name="role">
-                        <option value="student" selected>Student</option>
+                    <select id="input-role" name="role" required>
+                        <option value="student">Student</option>
                         <option value="admin">Admin</option>
                         <option value="super">Super Admin</option>
                     </select>
@@ -86,7 +69,9 @@
                 <div id="signup-username">
                     <label for="input-username">Username:</label>
                     <div>
-                        <input type="text" id="input-username" placeholder="Username" name="username" required />
+                        <input type="text" id="input-username" placeholder="Username" name="username" required 
+                            <?php if (isset($restoreInput)) echo "value='" . $restoreInput['username'] . "'" ?>
+                        />
                         <span></span>
                     </div>
                 </div>
@@ -94,7 +79,9 @@
                 <div id="signup-email">
                     <label for="input-email">Email:</label>
                     <div>
-                        <input type="email" id="input-email" placeholder="Email" name="email" required />
+                        <input type="email" id="input-email" placeholder="Email" name="email" required 
+                            <?php if (isset($restoreInput)) echo "value='" . $restoreInput['email'] . "'" ?>
+                        />
                         <span></span>
                     </div>
                 </div>
@@ -102,36 +89,13 @@
                 <div id="signup-password">
                     <label for="input-password">Password:</label>
                     <div>
-                        <input type="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters" id="input-password" placeholder="Password" name="password" required />
+                        <input type="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters" id="input-password" placeholder="Password" name="password" required 
+                            <?php if (isset($restoreInput)) echo "value='" . $restoreInput['password'] . "'" ?>
+                        />
                         <span></span>
                     </div>
                 </div>
 
-                <div id="signup-university">
-                    <label for="input-university">University:</label>
-                    <div>
-                        <input type="text" id="input-university" list="input-university-list" placeholder="University" name="university" required
-                            pattern="<?php
-                                while ($option = mysqli_fetch_array($all_universities,MYSQLI_ASSOC)):;
-                                $option_name = $option["name"];
-                                echo $option_name . "|";
-                                endwhile;
-                            ?>"
-                        />
-                        <span></span>
-                        <datalist id="input-university-list">
-                            <?php
-                                mysqli_data_seek($all_universities, 0);
-                                while ($option = mysqli_fetch_array($all_universities,MYSQLI_ASSOC)):;
-                                $option_name = $option["name"];
-                            ?>
-                            <option value="<?php echo $option_name;?>"><?php echo $option_name;?></option>
-                            <?php
-                                endwhile;
-                            ?>
-                        </datalist>
-                    </div>
-                </div>
                 <input type="submit" name="signup" value="Sign Up">
             </form>
 

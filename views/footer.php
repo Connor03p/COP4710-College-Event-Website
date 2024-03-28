@@ -4,8 +4,8 @@
         <a class="tooltip" href="https://events.ucf.edu/feed.ics">
             <img src="../img/apple.svg" style="width: 1rem;">
         </a>
-        <form method="POST">
-            <input type="submit" name="logout" value="Logout">
-        </form>
+        <a href="http://cop4710/logout">
+            <button>Logout</button>
+        </a>
     </div>
 </footer>

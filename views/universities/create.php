@@ -10,9 +10,10 @@
 
         if (isset($img_upload))
         {
-            $new_organization = array(
+            $new_university = array(
+                "super_id" => $_POST['super_id'],
                 "name" => $_POST['name'],
-                "color" => $_POST['color'],
+                "domain" => $_POST['domain'],
                 "description" => $_POST['description']
             );
 
@@ -22,28 +23,22 @@
 
             try
             {
-                $query = "INSERT INTO files (name, path, type, size) VALUES (?, ?, ?, ?)";
+                $query = "INSERT INTO images (name, path, type, size) VALUES (?, ?, ?, ?)";
                 $query = $conn->prepare($query);
                 $query->bind_param("ssss", $new_file['name'], $new_file['path'], $new_file['type'], $new_file['size']);
                 $query->execute();
 
                 $file_id = mysqli_insert_id($conn);
 
-                $query = "INSERT INTO universities (name, logo_id, color, description) VALUES (?, ?, ?, ?)";
+                $query = "INSERT INTO universities (name, super_id, logo_id, domain, description) VALUES (?, ?, ?, ?)";
                 $query = $conn->prepare($query);
-                $query->bind_param("siss", $new_organization['name'], $file_id, $new_organization['color'], $new_organization['description']);
+                $query->bind_param("siis", $new_university['name'], $new_university['super_id'], $file_id, $new_university['domain'], $new_university['description']);
                 $query->execute();
 
                 $university_id = mysqli_insert_id($conn);
 
-                $query = "UPDATE users SET university_id = ? WHERE id = ?";
-                $query = $conn->prepare($query);
-                $query->bind_param("ii", $university_id, $_SESSION['user']['id']);
-                $query->execute();
-                $_SESSION['user']['university_id'] = $university_id;
-
                 mysqli_commit($conn);
-                header('location: ' . $_SERVER["DOCUMENT_ROOT"] . '\dashboard.php');
+                header('location: http://cop4710/');
             }
             catch (Exception $e)
             {
@@ -63,7 +58,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Create University Profile</title>
         <meta name="description" content="">
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="http://cop4710/style.css">
     </head>
     
     <body>
@@ -79,29 +74,28 @@
 
             <form method="POST" enctype="multipart/form-data">
                 <div>
-                    <label for="input-logo">Name</label>
+                    <label for="name">Name</label>
                     <input type="text" name="name" id="input-name" placeholder="University Name" required>
                     <span></span>
                 </div>
 
                 <div>
-                    <label for="input-logo">Logo</label>
+                    <label for="fileToUpload">Logo</label>
                     <input type="file" name="fileToUpload" id="fileToUpload">
                     <span></span>
                 </div>
 
                 <div>
-                    <label for="input-logo">Color</label>
-                    <input type="color" name="color" id="input-name" placeholder="University Color" required>
-                    <span></span>
-                </div>
-
-                <div>
-                    <label for="input-logo">Description</label>
+                    <label style="resize: vertical;" for="description">Description</label>
                     <textarea name="description" rows="5" required></textarea>
                     <span></span>
                 </div>
-
+                <input type="hidden" name="super_id" value="<?php echo $_SESSION['user']['id']; ?>">
+                <input type="hidden" name="domain" value="<?php 
+                    $email = $_SESSION['user']['email']; 
+                    $domain = substr($email, strpos($email, '@') + 1);
+                    echo $domain;
+                ?>">
                 <input type="submit" name="submit" value="Create University">
             </form>
         </main>

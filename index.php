@@ -29,7 +29,7 @@
                 require $dir['views'] . 'signup.php';
                 return;
             default:
-                require $dir['views'] . 'login.php';
+                header("Location: http://cop4710/");
                 return;
         }
     }
@@ -38,10 +38,6 @@
     {
         case '':
             require $dir['views'] . 'dashboard.php';
-            break;
-
-        case 'login':
-            require $dir['views'] . 'login.php';
             break;
 
         case 'signup':
@@ -68,8 +64,9 @@
             require $dir['views'] . 'events.php';
             break;
         
-        case 'logout':
-            require $dir['views'] . 'logout.php';
+        case 'logout' || 'login':
+            unset($_SESSION["user"]);
+            header("Location: http://cop4710/");
             break;
 
         default:

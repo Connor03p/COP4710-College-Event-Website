@@ -49,12 +49,12 @@
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("i", $_SESSION['university']['id']);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $data_events = $stmt->get_result();
             ?>
 
-            <?php if ($result->num_rows > 0): ?>
+            <?php if ($data_events->num_rows > 0): ?>
                 <?php
-                while ($row = $result->fetch_assoc()) {
+                while ($row = $data_events->fetch_assoc()) {
                     echo "<a style='text-decoration: none;' href='/organizations?id=" . $row['id'] . "'>";
                     echo "    <section class='rso'>";
                     echo "        <h3 class='rso-name'>" . $row['name'] . "</h3>";

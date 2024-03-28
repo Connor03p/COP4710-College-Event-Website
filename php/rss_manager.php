@@ -9,12 +9,12 @@
         $stmt = $conn->prepare($query);
         $stmt->bind_param("i", $_SESSION['university']['id']);
         $stmt->execute();
-        $result = $stmt->get_result();
+        $data_events = $stmt->get_result();
         $stmt->close();
 
-        if ($result->num_rows > 0)
+        if ($data_events->num_rows > 0)
         {
-            while($row = $result->fetch_assoc())
+            while($row = $data_events->fetch_assoc())
             {
                 if ($row['last_read'] < date('Y-m-d H:i:s', strtotime('-1 hour'))) // if the last read is more than an hour ago
                 {
