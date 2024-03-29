@@ -47,7 +47,7 @@
             <?php
             $sql = "SELECT O.id, O.name, O.summary FROM organizations O WHERE university_id = ? ORDER BY O.date_created DESC LIMIT 10";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $_SESSION['university']['id']);
+            $stmt->bind_param("i", $_SESSION['user']['university_id']);
             $stmt->execute();
             $data_events = $stmt->get_result();
             ?>

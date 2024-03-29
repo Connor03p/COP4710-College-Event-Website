@@ -42,7 +42,7 @@
 
         $_SESSION['user'] = $user;
 
-        return $user['username'] == $input_name;
+        return $_SESSION['user']['username'] == $input_name;
     }
 ?>
 
@@ -71,9 +71,9 @@
             
             <form id="form-login" method="POST">
                 <div>
-                    <label for="input-username">Username</label>
+                    <label for="username">Username</label>
                     <div>
-                        <input type="text" name="username" id="input-username" placeholder="Username" required
+                        <input type="text" name="username" id="username" placeholder="Username" required
                             <?php 
                                 if (isset($loginUsername)) { echo "value='" . $loginUsername . "'"; } 
                                 if (isset($loginError) && $loginError == 'User not found') echo 'title="User not found"';
@@ -84,9 +84,9 @@
                 </div>
                 
                 <div>
-                    <label for="input-password">Password</label>
+                    <label for="password">Password</label>
                     <div>
-                        <input type="password" name="password" id="input-password" placeholder="Password" required
+                        <input type="password" name="password" id="password" placeholder="Password" required
                             <?php 
                                 if (isset($loginPassword)) { echo "value='" . $loginPassword . "'"; }
                                 if (isset($loginError) && $loginError == 'Password incorrect') echo 'title="Password incorrect"';

@@ -2,6 +2,7 @@ html {
     height: 100%;
     margin: 0;
     font-size: 1.2rem;
+    scroll-behavior: smooth;
 }
 
 body {
@@ -143,19 +144,13 @@ header {
     text-align: center;
 }
 
-svg {
-    width: 100%;
-    height: 100%;
-}
-
 form {
     max-width: 50rem;
     margin: auto;
 }
 
-form>div {
-    display: grid;
-    grid-template-columns: 8rem 1fr 0px;
+form > * {
+    margin: 1rem 0;
 }
 
 @media screen and (max-width: 30rem) {
@@ -189,6 +184,13 @@ input {
     margin: 0.4rem 0;
     border-radius: 0.3em;
     font-size: 1rem;
+    flex-grow: 1;
+}
+
+/* Display "(optional)" text next to labels of required fields */
+label.optional::after {
+    content: " (optional)";
+    color: var(--lowEmphasis);
 }
 
 input[type="submit"] {

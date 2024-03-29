@@ -8,6 +8,7 @@
     $request = explode("/", $request)[1];
     
     $dir = array(
+        'domain' => 'https://cop4710',
         'root' => $_SERVER["DOCUMENT_ROOT"] . '/',
         'views' => $_SERVER["DOCUMENT_ROOT"] . '/views/',
         'php' => $_SERVER["DOCUMENT_ROOT"] . '/php/',
@@ -21,17 +22,18 @@
         {
             case '':
                 require $dir['views'] . 'login.php';
-                return;
+                break;
             case 'login':
                 require $dir['views'] . 'login.php';
-                return;
+                break;
             case 'signup':
                 require $dir['views'] . 'signup.php';
-                return;
+                break;
             default:
-                header("Location: http://cop4710/");
-                return;
+                header("Location: " . $dir['domain']);
+                break;
         }
+        return;
     }
 
     switch ($request)
@@ -64,9 +66,9 @@
             require $dir['views'] . 'events.php';
             break;
         
-        case 'logout' || 'login':
+        case 'logout':
             unset($_SESSION["user"]);
-            header("Location: http://cop4710/");
+            header("Location: " . $dir['domain']);
             break;
 
         default:

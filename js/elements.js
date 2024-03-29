@@ -33,7 +33,6 @@ function dataURLtoFile(dataurl, filename) {
     
     return new File([u8arr], filename, {type:mime});
 }
-let file = dataURLtoFile(data)
 
 function download(file) {
     var save = file;

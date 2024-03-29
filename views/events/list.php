@@ -21,7 +21,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <meta name="description" content="">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="<?=$dir['domain']?>/style.css">
     <style>
         #filter-container {
             display: flex;
@@ -69,7 +69,7 @@
             <?php if ($data_events->num_rows > 0): ?>
                 <?php
                 while ($row = $data_events->fetch_assoc()) {
-                    echo "<a href='http://cop4710/events?id=" . $row['id'] . "'>";
+                    echo "<a href='" . $dir['domain'] . "/events?id=" . $row['id'] . "'>";
                     echo "  <section>";
                     echo "      <h3 class='event-title'>" . $row['title'] . "</h3>";
                     echo "      <p class='event-summary'>" . $row['summary'] . "</p>";

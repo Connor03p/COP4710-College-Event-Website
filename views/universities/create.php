@@ -86,8 +86,8 @@
                 </div>
 
                 <div>
-                    <label style="resize: vertical;" for="description">Description</label>
-                    <textarea name="description" rows="5" required></textarea>
+                    <label for="description">Description</label>
+                    <textarea style="resize: vertical;" name="description" rows="5" required></textarea>
                     <span></span>
                 </div>
                 <input type="hidden" name="super_id" value="<?php echo $_SESSION['user']['id']; ?>">
@@ -96,8 +96,20 @@
                     $domain = substr($email, strpos($email, '@') + 1);
                     echo $domain;
                 ?>">
+
+                <div>
+                    <label for="location">Location:</label>
+                    <div>
+                        <input type="text" name="location" placeholder="Location Description" required>
+                        <span></span>
+                    </div>
+                    <div id="map"></div>
+                    <input type="hidden" name="lat" id="input-lat">
+                    <input type="hidden" name="lng" id="input-lng">
+                </div>
                 <input type="submit" name="submit" value="Create University">
             </form>
         </main>
     </body>
+    <script src="<?=$dir['domain']?>/js/map-input.js"></script>
 </html>

@@ -115,6 +115,18 @@ a.hide-link:hover
     color: var(--link);
 }
 
+a:has(section) {
+    text-decoration: none;
+}
+
+a:has(section) > section:hover, a:has(section):focus > section {
+    outline: solid 0.2rem var(--link);
+}
+
+a:has(section):focus {
+    outline: none;
+}
+
 
 code {
     display: inline-block;
