@@ -10,10 +10,11 @@
     <body>
         <main>
             <header>
-                <h1>Page Not Found</h1>
+                <h1>Error</h1>
             </header>
-            <p class="center">Sorry, the page you are looking for does not exist.</p>
+            <p class="center">Something went wrong. Please try again later.</p>
             <p class="center"><a href="<?=$dir['domain']?>/">Return to homepage</a></p>
+            <p class="center"><a href="<?=$dir['domain']?>/logout">Logout</a></p>
         </main>
     </body>
 </html>

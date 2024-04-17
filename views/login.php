@@ -58,8 +58,8 @@
 
     <body>
         <main>
-            <header>
-                <h1>University Events</h1>
+            <header style="text-align: center;">
+                <h1>Login</h1>
             </header>
             <div class="break-line"></div>
 
@@ -71,12 +71,12 @@
             
             <form id="form-login" method="POST">
                 <div>
-                    <label for="username">Username</label>
+                    <label for="username">Username:</label>
                     <div>
-                        <input type="text" name="username" id="username" placeholder="Username" required
+                        <input type="text" name="username" id="username" required
                             <?php 
                                 if (isset($loginUsername)) { echo "value='" . $loginUsername . "'"; } 
-                                if (isset($loginError) && $loginError == 'User not found') echo 'title="User not found"';
+                                if (isset($loginError) && $loginError == 'User not found') echo 'class="invalid" title="User not found"';
                             ?>
                         >
                         <span></span>
@@ -84,12 +84,12 @@
                 </div>
                 
                 <div>
-                    <label for="password">Password</label>
+                    <label for="password">Password:</label>
                     <div>
-                        <input type="password" name="password" id="password" placeholder="Password" required
+                        <input type="password" name="password" id="password" required
                             <?php 
                                 if (isset($loginPassword)) { echo "value='" . $loginPassword . "'"; }
-                                if (isset($loginError) && $loginError == 'Password incorrect') echo 'title="Password incorrect"';
+                                if (isset($loginError) && $loginError == 'Password incorrect') echo 'class="invalid" title="Password incorrect"';
                             ?> 
                         >
                         <span></span>

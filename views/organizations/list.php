@@ -1,3 +1,31 @@
+<?php
+    $queryText = [];
+    $query = "SELECT O.id, O.name, O.summary, I.name file_name FROM organizations O LEFT JOIN images I ON I.id = O.image_id WHERE university_id = ?";
+    $params = [];
+    $params[] = $_SESSION['user']['university_id'];
+
+    if (isset($_GET['submit']))
+    {
+        if (isset($_GET['search']) && !empty($_GET['search']))
+        {
+            $restoreInput = $_GET;
+            $search = $_GET['search'];
+            $query .= " AND (O.name LIKE ? OR O.summary LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+        }
+    }
+
+    $query .= " ORDER BY O.active DESC, O.name ASC";
+    
+    $queryText[] = $query;
+    $query = $conn->prepare($query);
+    if (!empty($params))
+        $query->bind_param(str_repeat("s", count($params)), ...$params);
+    $query->execute();
+    $data_events = $query->get_result();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -21,8 +49,7 @@
         }
 
         #filter-button {
-            height: 2.2rem;
-            max-width: 2.2rem;
+            flex-grow: 0;
         }
     </style>
 </head>
@@ -30,35 +57,25 @@
 <body>
     <main>
         <form id="filter-container">
-            <input type="search" id="filter-search" placeholder="Search Organizations">
-            <select id="filter-tags">
-                <option value="" disabled selected hidden>Tags</option>
-                <option value="tag1">Tag1</option>
-                <option value="tag2">Tag2</option>
-                <option value="tag3">Tag3</option>
-            </select>
-            <input type="image" name="filter" id="filter-button"
-                src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>'>
-            </input>
+            <input type="search" name="search" id="filter-search" placeholder="Search Organizations"
+                value="<?php echo isset($restoreInput['search']) ? $restoreInput['search'] : ''; ?>" /
+            >
+            <input type="submit" name="submit" id="filter-button" value="Search" />
         </form>
 
 
         <div id="EventList-All">
-            <?php
-            $sql = "SELECT O.id, O.name, O.summary FROM organizations O WHERE university_id = ? ORDER BY O.date_created DESC LIMIT 10";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $_SESSION['user']['university_id']);
-            $stmt->execute();
-            $data_events = $stmt->get_result();
-            ?>
-
             <?php if ($data_events->num_rows > 0): ?>
                 <?php
                 while ($row = $data_events->fetch_assoc()) {
                     echo "<a style='text-decoration: none;' href='/organizations?id=" . $row['id'] . "'>";
                     echo "    <section class='rso'>";
-                    echo "        <h3 class='rso-name'>" . $row['name'] . "</h3>";
-                    echo "        <p class='rso-description'>" . $row['summary'] . "</p>";
+                    if ($row['file_name'] != null)
+                    echo "        <img src='" . $dir["uploads"] . $row['file_name'] . "' alt='RSO Logo' class='rso-logo'>";
+                    echo "        <div>";
+                    echo "          <h3 class='rso-name'>" . $row['name'] . "</h3>";
+                    echo "          <div class='rso-description'>" . $row['summary'] . "</div>";
+                    echo "        </div>";
                     echo "    </section>";
                     echo "</a>";
                 }
@@ -75,17 +92,6 @@
                 </div>
             <?php endif; ?>
         </div>
-
-        <br>
-
-        <a style="text-decoration: none;" href="organizations/create">
-            <section>
-                <h3>Create an Organization</h3>
-                <p>Start a new organization to get involved with your university community.</p>
-            </section>
-        </a>
-
-        <?php include $dir['views'] . 'footer.php'; ?>
     </main>
 
     <script>

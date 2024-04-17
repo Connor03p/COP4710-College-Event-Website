@@ -11,62 +11,77 @@
         try
         {
             $new_event = array(
-                "privacy" => $_POST['privacy'],
-                "organization_id" => $_POST['organization_id'],
-                "university_id" => $_POST['university_id'],
-                "title" => $_POST['title'],
-                "category" => $_POST['category'],
-                "start_time" => $_POST['start-time'],
-                "end_time" => $_POST['end-time'],
-                "location" => $_POST['location'],
-                "lat" => $_POST['lat'],
-                "lng" => $_POST['lng'],
-                "email" => $_POST['email'],
-                "phone" => $_POST['phone'],
-                "summary" => $_POST['summary'],
-                "details" => $_POST['details']
+                "privacy" =>            isset($_POST['privacy']) ? $_POST['privacy'] : null,
+                "organization_id" =>    isset($_POST['organization_id']) ? $_POST['organization_id'] : null,
+                "university_id" =>      isset($_POST['university_id']) ? $_POST['university_id'] : null,
+                "title" =>              isset($_POST['title']) ? $_POST['title'] : null,
+                "category" =>           isset($_POST['category']) ? $_POST['category'] : null,
+                "start_time" =>         isset($_POST['start-time']) ? $_POST['start-time'] : null,
+                "end_time" =>           isset($_POST['end-time']) ? $_POST['end-time'] : null,
+                "location" =>           isset($_POST['location']) ? $_POST['location'] : null,
+                "lat" =>                isset($_POST['lat']) ? $_POST['lat'] : null,
+                "lng" =>                isset($_POST['lng']) ? $_POST['lng'] : null,
+                "contact" =>            isset($_POST['contact']) ? $_POST['contact'] : null,
+                "email" =>              isset($_POST['email']) ? $_POST['email'] : null,
+                "phone" =>              isset($_POST['phone']) ? $_POST['phone'] : null,
+                "summary" =>            isset($_POST['summary']) ? $_POST['summary'] : null,
+                "details" =>            isset($_POST['details']) ? $_POST['details'] : null,
+                "user_id" =>            $_SESSION['user']['id']
             );
 
-            $query = "INSERT INTO locations (description, latitude, longitude) VALUES (?, ?, ?)";
+            $query = "CALL insert_event(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @new_event_id)";
             $query = $conn->prepare($query);
-            $query->bind_param("sdd", $new_event['location'], $new_event['lat'], $new_event['lng']);
+            $query->bind_param("sssssssssddiisss", 
+                $new_event['title'],
+                $new_event['summary'],
+                $new_event['privacy'],
+                $new_event['contact'],
+                $new_event['email'], 
+                $new_event['phone'], 
+                $new_event['category'],
+                $new_event['details'],
+                $new_event['location'],
+                $new_event['lat'],
+                $new_event['lng'], 
+                $new_event['university_id'],
+                $new_event['organization_id'],
+                $new_event['user_id'],
+                $new_event['start_time'], 
+                $new_event['end_time'],
+                );
             $query->execute();
 
-            $location_id = mysqli_insert_id($conn);
+            // Retrieve the new event ID
+            $result = $conn->query("SELECT @new_event_id AS new_event_id");
+            $row = $result->fetch_assoc();
+            $new_event_id = $row["new_event_id"];
 
-            $query = "INSERT INTO events (title, category, date_start, date_end, location_id, email, phone, summary, details) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            $query = $conn->prepare($query);
-            $query->bind_param("ssssissss", $new_event['title'], $new_event['category'], $new_event['start_time'], $new_event['end_time'], $location_id, $new_event['email'], $new_event['phone'], $new_event['summary'], $new_event['details']);
-            $query->execute();
-
-            $event_id = mysqli_insert_id($conn);
-
-            if ($new_event['privacy'] === 'organization')
-            {
-                $event_id = mysqli_insert_id($conn);
-                $query = "INSERT INTO rso_events (event_id, rso_id) VALUES (?, ?)";
-                $query = $conn->prepare($query);
-                $query->bind_param("ii", $event_id, $new_event['organization_id']);
-                $query->execute();
-            }
-            else if ($new_event['privacy'] === 'private')
-            {
-                $event_id = mysqli_insert_id($conn);
-                $query = "INSERT INTO private_events (event_id, university_id) VALUES (?, ?)";
-                $query = $conn->prepare($query);
-                $query->bind_param("ii", $event_id, $new_event['university_id']);
-                $query->execute();
-            }
+            // Check if the new event ID is set
+            if ($new_event_id !== null)
+                echo "New event ID: $new_event_id";
 
             mysqli_commit($conn);
-            header('location: ' . $dir['domain'] . '/events?id=' . $event_id);
+            
+            if (isset($new_event_id))
+                header('location: ' . $dir['domain'] . '/events?id=' . $new_event_id);
+            
             return;
         }
         catch (Exception $e)
         {
+            $errorMessage = $e->getMessage();
+            if ($e->getMessage() == "Event conflicts with another event at the same location")
+            {
+                // Retrieve conflicting events
+                $conflicting_events_result = $conn->query("SELECT * FROM conflicting_events");
+                $conflicting_events = [];
+                while ($row = $conflicting_events_result->fetch_assoc()) {
+                    $conflicting_events[] = $row;
+                }
+            }
+
             mysqli_rollback($conn);
-            echo $e;
+
             $restoreInput = $_POST;
         }
     }
@@ -96,100 +111,204 @@
     
     <body>
         <main>
-            <header>
+            <header style="text-align: center;">
                 <h1>New Event</h1>
             </header>
             <div class="break-line"></div>
 
             <form method="POST" enctype="multipart/form-data">
+
+            <?php if (isset($errorMessage)): ?>
+                <section class="error">
+                    <p><?=$errorMessage?></p>
+                        <?php if (isset($conflicting_events)): ?>
+                            <?php
+                            foreach ($conflicting_events as $row) {
+                                echo "<a href='" . $dir['domain'] . "/events?id=" . $row['id'] . "' target='_blank' rel='noreferrer noopener'>";
+                                echo "  <section>";
+                                echo "      <h3 class='event-title'>" . $row['title'] . "</h3>";
+                                echo "      <div class='details-container'>";
+            
+                                // Display the event date
+                                if (isset($row['event_start']) || isset($row['event_end']))
+                                {
+                                    echo "          <div class='detail'>";
+                                    echo file_get_contents($dir['img'] . "calendar-icon.svg");
+                                    echo "              <p>";
+                                        if(isset($row['event_start']))
+                                        {
+                                            $startTime = date("F j, g:ia", strtotime($row['event_start']));
+                                            echo ($startTime);
+                                        }   
+                                        if(isset($row['event_end']))
+                                        {
+                                            // If the end date is more than 1 day after the start date, display the end date
+                                            if (date("Y-m-d", strtotime($row['event_start'])) != date("Y-m-d", strtotime($row['event_end'])))
+                                            {
+                                                $endTime = date("F j, g:ia", strtotime($row['event_end']));
+                                            }
+                                            else
+                                            {
+                                                $endTime = date("g:ia", strtotime($row['event_end']));
+                                            }
+                                            echo " - " . ($endTime);
+                                        }
+                                    echo "              </p>";
+                                    echo "          </div>";
+                                }
+            
+                                // Display the event location
+                                if (isset($row['location_name']))
+                                {
+                                    echo "          <div class='detail'>";
+                                    echo file_get_contents($dir['img'] . "location-icon.svg");
+                                    echo "              <p class='event-location'>" . $row['location_name'] . "</p>";
+                                    echo "          </div>";
+                                }
+                                
+                                echo "      </div>";
+                                echo "      <div class='event-summary'>" . $row['summary'] . "</div>";
+                                echo "  </section>";
+                                echo "</a>";
+                            }
+                            ?>
+                        <?php endif; ?>
+                    </section>
+                <?php endif; ?>
+
                 <?php
-                    $query = "SELECT id, name FROM organizations WHERE admin_id = ?";
-                    $query = $conn->prepare($query);
-                    $query->bind_param("i", $_SESSION['user']['id']);
+                    if ($_SESSION['user']['role'] == "Admin")
+                    {
+                        $query = "SELECT id, name FROM organizations WHERE admin_id = ?";
+                        $query = $conn->prepare($query);
+                        $query->bind_param("i", $_SESSION['user']['id']);
+                    }
+                    else if ($_SESSION['user']['role'] == "Super")
+                    {
+                        $query = "SELECT id, name FROM organizations WHERE university_id = ?";
+                        $query = $conn->prepare($query);
+                        $query->bind_param("i", $_SESSION['user']['university_id']);
+                    }
+                    else
+                    {
+                        // User shouldn't be able to access this page
+                        header('location: http://cop4710/');
+                    }
+
                     $query->execute();
                     $form_organizations = $query->get_result();
                     $form_has_organizations = $form_organizations->num_rows > 0;
+                    
                 ?>
 
-                <div>
-                    <label for="privacy">Privacy:</label>
-                    <select name="privacy" id="input-privacy">
-                        <?php if ($form_has_organizations): ?>
-                            <option value="organization" selected>RSO Members</option>
-                        <?php endif; ?>
-                        <option value="private">Private</option>
-                    </select>
-                </div>
+                <fieldset>
+                    <legend>Event Information</legend>
 
-                <?php if ($form_has_organizations): ?>
-                    <div id="input-organization">
+                    <div>
+                        <label for="title">Title:</label>
+                        <div>
+                            <input type="text" name="title" required
+                                <?php if (isset($restoreInput)) echo "value='" . $restoreInput['title'] . "'" ?>
+                            >
+                            <span></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="privacy">Privacy:</label>
+                        <select name="privacy" id="input-privacy">
+                            <?php if ($_SESSION['user']['role'] == "Super"): ?>
+                                <option value="public"
+                                    <?php if (isset($restoreInput) && $restoreInput['privacy'] == "public") echo "selected" ?>
+                                >Public</option>
+                            <?php endif; ?>
+                            <option value="private"
+                                <?php if (isset($restoreInput) && $restoreInput['privacy'] == "private") echo "selected" ?>
+                            >Private</option>
+                            <?php if ($_SESSION['user']['role'] == "Admin"): ?>
+                                <?php if ($form_has_organizations): ?>
+                                    <option value="organization"
+                                        <?php if (isset($restoreInput) && $restoreInput['privacy'] == "organization") echo "selected" ?>
+                                    >RSO Members</option>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                    
+                    <div id="input-organization" hidden>
                         <label for="organization_id">RSO:</label>
                         <select name="organization_id">
                             <?php
                                 while ($row = $form_organizations->fetch_assoc())
                                 {
-                                    echo "<option value='" . $row['id'] . "'>" . $row['name'] . "</option>";
+                                    echo "<option value='" . $row['id'] . "' " . ((isset($restoreInput['organization_id']) && $restoreInput['organization_id'] == $row['id']) ? "selected" : "") . ">" . $row['name'] . "</option>";
                                 }
                             ?>
                         </select>
                     </div>
-                <?php endif; ?>
 
-                <input type="hidden" name="university_id" value="<?=$_SESSION['user']['university_id']?>">
+                    <input type="hidden" name="university_id" value="<?=$_SESSION['user']['university_id']?>">
 
-                <div>
-                    <label for="title">Title:</label>
+                    <?php
+                        // Get the possible enum values for the category column of the events table
+                        $query = "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'events' AND COLUMN_NAME = 'category'";
+                        $query = $conn->prepare($query);
+                        $query->execute();
+                        $result = $query->get_result()->fetch_assoc();
+                        $form_categories = explode("','", substr($result['COLUMN_TYPE'], 6, -2));
+                    ?>
+
                     <div>
-                        <input type="text" name="title" placeholder="Event Title" required
-                            <?php if (isset($restoreInput)) echo "value='" . $restoreInput['title'] . "'" ?>
-                        >
-                        <span></span>
+                        <label for="category">Category:</label>
+                        <div>
+                            <select name="category" required>
+                                <?php
+                                    foreach ($form_categories as $category)
+                                    {
+                                        echo "<option value='" . $category . "'>" . $category . "</option>";
+                                    }
+                                ?>
+                            </select>
+                            <span></span>
+                        </div>
                     </div>
-                </div>
 
-                <?php
-                    // Get the possible enum values for the category column of the events table
-                    $query = "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'events' AND COLUMN_NAME = 'category'";
-                    $query = $conn->prepare($query);
-                    $query->execute();
-                    $result = $query->get_result()->fetch_assoc();
-                    $form_categories = explode("','", substr($result['COLUMN_TYPE'], 6, -2));
-                ?>
-
-                <div>
-                    <label for="category">Category:</label>
                     <div>
-                        <select name="category" required>
-                            <?php
-                                foreach ($form_categories as $category)
-                                {
-                                    echo "<option value='" . $category . "'>" . $category . "</option>";
-                                }
-                            ?>
-                        </select>
-                        <span></span>
+                        <label for="start-time">Start Time:</label>
+                        <div>
+                            <input type="datetime-local" name="start-time" id="input-start-time" required
+                                <?php if (isset($restoreInput)) echo "value='" . $restoreInput['start-time'] . "'" ?>
+                            >
+                            <span></span>
+                        </div>
                     </div>
-                </div>
 
-                <div>
-                    <label for="start-time">Start Time:</label>
                     <div>
-                        <input type="datetime-local" name="start-time" id="input-start-time" required
-                            <?php if (isset($restoreInput)) echo "value='" . $restoreInput['start-time'] . "'" ?>
-                        >
-                        <span></span>
+                        <label class="optional" for="end-time">End Time:</label>
+                        <div>
+                            <input type="datetime-local" name="end-time" id="input-end-time"
+                                <?php if (isset($restoreInput)) echo "value='" . $restoreInput['end-time'] . "'" ?>
+                            >
+                            <span></span>
+                        </div>
                     </div>
-                </div>
 
-                <div>
-                    <label class="optional" for="end-time">End Time:</label>
                     <div>
-                        <input type="datetime-local" name="end-time" id="input-end-time"
-                            <?php if (isset($restoreInput)) echo "value='" . $restoreInput['end-time'] . "'" ?>
-                        >
-                        <span></span>
+                        <label for="summary">Summary:</label>
+                        <div>
+                            <textarea style="resize: none;" name="summary" rows="2" maxlength="255" required><?php if (isset($restoreInput)) echo $restoreInput['summary']?></textarea>
+                            <span></span>
+                        </div>
                     </div>
-                </div>
+
+                    <div>
+                        <label for="details">Details:</label>
+                        <div> 
+                            <textarea resizeable name="details" rows="5" required><?php if (isset($restoreInput)) echo $restoreInput['details']?></textarea>
+                            <span></span>
+                        </div>
+                    </div>
+                </fieldset>
 
                 <?php
                     if (!isset($restoreInput))
@@ -216,57 +335,89 @@
                     }
                 ?>
 
-                <div>
-                    <label for="location">Location:</label>
+                <fieldset>
+                    <legend>Location</legend>
+
                     <div>
-                        <input type="text" name="location" placeholder="Location Description" required
-                            <?php if ($form_has_location) echo "value='" . $form_location['description'] . "'";?>
-                        >
-                        <span></span>
+                        <label for="location">Address or Location Name:</label>
+                        <div>
+                            <input type="text" name="location" required
+                                <?php if ($form_has_location) echo "value='" . $form_location['description'] . "'";?>
+                            >
+                            <span></span>
+                        </div>
                     </div>
+                    
                     <div id="map"></div>
-                    <input type="hidden" name="lat" id="input-lat"
-                        <?php if ($form_has_location) echo "value='" . $form_location['latitude'] . "'";?>
-                    >
-                    <input type="hidden" name="lng" id="input-lng"
-                        <?php if ($form_has_location) echo "value='" . $form_location['longitude'] . "'";?>
-                    >
-                </div>
-                
 
-                <div>
-                    <label for="email">Email:</label>
-                    <div>
-                        <input type="email" name="email"
-                            <?php if (isset($restoreInput) && isset($restoreInput['email'])) echo "value='" . $restoreInput['email'] . "'" ?>
-                        >
-                        <span></span>
-                    </div>
-                </div>
+                    <style>
+                        /* Chrome, Safari, Edge, Opera */
+                        input.hide-arrows::-webkit-outer-spin-button,
+                        input.hide-arrows::-webkit-inner-spin-button {
+                            -webkit-appearance: none;
+                            margin: 0;
+                        }
 
-                <div>
-                    <label for="phone">Phone:</label>
+                        /* Firefox */
+                        input.hide-arrows[type=number] {
+                            -moz-appearance: textfield;
+                        }
+                    </style>
+                        
                     <div>
-                        <input type="tel" name="phone"
-                            <?php if (isset($restoreInput) && isset($restoreInput['phone'])) echo "value='" . $restoreInput['phone'] . "'" ?>
-                        >
-                        <span></span>
+                        <label for="lat">Latitude:</label>
+                        <div>
+                            <input class="hide-arrows" type="text" name="lat" id="input-lat" pattern="^-?\d*\.?\d+$" required
+                                <?php if ($form_has_location) echo "value='" . $form_location['latitude'] . "'";?>
+                            >
+                            <span></span>
+                        </div>
                     </div>
-                </div>
-                
-                <div>
-                    <label for="summary">Summary:</label>
-                    <div>
-                        <textarea style="resize: none;" name="summary" rows="2" maxlength="255" required><?php if (isset($restoreInput)) echo $restoreInput['summary']?></textarea>
-                        <span></span>
-                    </div>
-                </div>
 
-                <div>
-                    <label for="details">Details:</label>
-                    <textarea style="resize: vertical" name="details" rows="5" required><?php if (isset($restoreInput)) echo $restoreInput['details']?></textarea>
-                    <span></span>
-                </div>
+                    <div>
+                        <label for="lng">Longitude:</label>
+                        <div>
+                            <input class="hide-arrows" type="text" name="lng" id="input-lng" pattern="^-?\d*\.?\d+$" required
+                                <?php if ($form_has_location) echo "value='" . $form_location['longitude'] . "'";?>
+                            >
+                            <span></span>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Contact Information</legend>
+
+                    <div>
+                        <label for="contact" class="optional">Name:</label>
+                        <div>
+                            <input type="text" name="contact"
+                                <?php if (isset($restoreInput) && isset($restoreInput['contact'])) echo "value='" . $restoreInput['contact'] . "'" ?>
+                            >
+                            <span></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="email" class="optional">Email:</label>
+                        <div>
+                            <input type="email" name="email"
+                                <?php if (isset($restoreInput) && isset($restoreInput['email'])) echo "value='" . $restoreInput['email'] . "'" ?>
+                            >
+                            <span></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="phone" class="optional">Phone:</label>
+                        <div>
+                            <input type="tel" name="phone"
+                                <?php if (isset($restoreInput) && isset($restoreInput['phone'])) echo "value='" . $restoreInput['phone'] . "'" ?>
+                            >
+                            <span></span>
+                        </div>
+                    </div>
+                </fieldset>
 
                 <input type="submit" name="submit" value="Create Event">
             </form>
@@ -291,13 +442,29 @@
                 }
             });
 
+            organization.hidden = privacy.value !== 'organization';
+
             start_time.min = new Date().toISOString().split('T')[0] + 'T00:00';
             end_time.min = new Date().toISOString().split('T')[0] + 'T00:00';
-            start_time.value = new Date().toISOString().split('T')[0] + 'T00:00';
 
             start_time.addEventListener('change', function() {
                 end_time.min = start_time.value;
             });
+
+            // If either the latitude or longitude is changed, update the map
+            latitude.addEventListener('change', updateMap);
+            longitude.addEventListener('change', updateMap);
+
+            function updateMap()
+            {
+                const lat = parseFloat(latitude.value);
+                const lng = parseFloat(longitude.value);
+                if (lat && lng)
+                {
+                    map.setView([lat, lng], 15);
+                    marker.setLatLng([lat, lng]);
+                }
+            }
     </script>
    
 </html>

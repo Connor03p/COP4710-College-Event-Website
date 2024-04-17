@@ -13,7 +13,13 @@
             $query = $conn->prepare("INSERT INTO `users` (role, username, email, password) VALUES (?, ?, ?, ?)");
             $query->bind_param("ssss", $role, $username, $email, $password);
             $query->execute();
-            $query = $conn->close();
+
+            // Login the user
+            $query = $conn->prepare("SELECT * FROM users WHERE username = ?");
+            $query->bind_param("s", $username);
+            $query->execute();
+            $user = $query->get_result()->fetch_assoc();
+            $_SESSION['user'] = $user;
 
             header("Location: /");
         }
@@ -38,7 +44,7 @@
 
     <body>
         <main>
-            <header>
+            <header style="text-align: center;">
                 <h1>Sign Up</h1>
             </header>
             <div class="break-line"></div>
@@ -59,17 +65,20 @@
             <form id="form-signup" method="POST">
                 <div id="signup-role">
                     <label for="input-role">Role:</label>
-                    <select id="input-role" name="role" required>
-                        <option value="student">Student</option>
-                        <option value="admin">Admin</option>
-                        <option value="super">Super Admin</option>
-                    </select>
+                    <div>
+                        <select id="input-role" name="role" required>
+                            <option value="student">Student</option>
+                            <option value="admin">Admin</option>
+                            <option value="super">Super Admin</option>
+                        </select>
+                        <span></span>
+                    </div>
                 </div>
 
                 <div id="signup-username">
                     <label for="input-username">Username:</label>
                     <div>
-                        <input type="text" id="input-username" placeholder="Username" name="username" required 
+                        <input type="text" id="input-username" name="username" required 
                             <?php if (isset($restoreInput)) echo "value='" . $restoreInput['username'] . "'" ?>
                         />
                         <span></span>
@@ -79,7 +88,7 @@
                 <div id="signup-email">
                     <label for="input-email">Email:</label>
                     <div>
-                        <input type="email" id="input-email" placeholder="Email" name="email" required 
+                        <input type="email" id="input-email" name="email" required 
                             <?php if (isset($restoreInput)) echo "value='" . $restoreInput['email'] . "'" ?>
                         />
                         <span></span>
@@ -89,7 +98,7 @@
                 <div id="signup-password">
                     <label for="input-password">Password:</label>
                     <div>
-                        <input type="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters" id="input-password" placeholder="Password" name="password" required 
+                        <input type="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" title="Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters" id="input-password" name="password" required 
                             <?php if (isset($restoreInput)) echo "value='" . $restoreInput['password'] . "'" ?>
                         />
                         <span></span>

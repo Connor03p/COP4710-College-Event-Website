@@ -12,7 +12,8 @@
         'root' => $_SERVER["DOCUMENT_ROOT"] . '/',
         'views' => $_SERVER["DOCUMENT_ROOT"] . '/views/',
         'php' => $_SERVER["DOCUMENT_ROOT"] . '/php/',
-        'img' => $_SERVER["DOCUMENT_ROOT"] . '/img/'
+        'img' => $_SERVER["DOCUMENT_ROOT"] . '/img/',
+        'uploads' => 'https://cop4710/uploads/',
     );    
 
     // Check if logged in
@@ -76,3 +77,5 @@
             require $dir['views'] . '404.php';
             break;
     }
+
+    require $dir['views'] . 'footer.php';

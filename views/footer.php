@@ -1,11 +1,20 @@
-<footer>
-    <div style="display: flex;">
-        <p>Calendar Feeds:</p>
-        <a class="tooltip" href="https://events.ucf.edu/feed.ics">
-            <img src="../img/apple.svg" style="width: 1rem;">
-        </a>
-        <a href="http://cop4710/logout">
-            <button>Logout</button>
-        </a>
-    </div>
-</footer>
+<?php if (isset($_SESSION['user'])): ?>
+    <footer>
+        <!--
+            <div style="display: flex;">        
+                Calendar Feeds:
+            </div>
+        -->
+        <br>
+        <a class="button" href="http://cop4710/logout">Logout</a>
+    </footer>
+
+    <?php if (isset($queryText)): 
+        foreach ($queryText as $query): ?>
+            <script>
+                console.log(`<?php echo $query; ?>`);
+            </script>
+    <?php endforeach; endif; ?>
+<?php endif; ?>
+</body>
+</html>

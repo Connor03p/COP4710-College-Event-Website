@@ -2,9 +2,8 @@
     global $dir;
     require_once $dir['php'] . 'database.php';
     global $conn;
-
-    $event_id = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
-    $event_id = explode("=", $event_id)[1];
+    $queryText = [];
+    $event_id = $_GET['id'];
 
     if (isset($_POST['submit'])) {
         $rating = $_POST['star'];
@@ -31,10 +30,29 @@
         header('Location: ' . $dir['domain'] . '/events?id=' . $event_id);
         return;
     }
+    else if (isset($_POST['delete']))
+    {
+        $user_id = $_SESSION['user']['id'];
+
+        $query = "DELETE FROM event_ratings WHERE event_id = ? AND user_id = ?";
+        $query = $conn->prepare($query);
+        $query->bind_param("ii", $event_id, $user_id);
+        $query->execute();
+
+        $query = "DELETE FROM event_comments WHERE event_id = ? AND user_id = ?";
+        $query = $conn->prepare($query);
+        $query->bind_param("ii", $event_id, $user_id);
+        $query->execute();
+
+        unset($_POST);
+        header('Location: ' . $dir['domain'] . '/events?id=' . $event_id);
+        return;
+    }
     
     // Get event information. If the event has a location id, get the location name and coordinates as well
-    $query = "SELECT E.title, E.details, E.date_start, E.date_end, L.description location_name, L.latitude, L.longitude
+    $query = "SELECT E.title, E.details, E.event_start, E.event_end, E.contact, E.phone, E.email, L.description location_name, L.latitude, L.longitude
         FROM events E LEFT JOIN locations L ON E.location_id = L.id WHERE E.id = ?";
+    $queryText[] = $query;
     $query = $conn->prepare($query);
     $query->bind_param("i", $event_id);
     $query->execute();
@@ -69,34 +87,6 @@
             }
         </style>
         <style>
-            #details-container {
-                display: flex;
-                flex-direction: column;
-                flex-wrap: wrap;
-                gap: 1rem;
-                max-width: 100%;
-                justify-content: center;
-            }
-
-            #details-container svg
-            {
-                width: 1.5rem;
-                height: 1.5rem;
-            }
-
-            #details-container>.detail {
-                width: unset;
-                gap: 0.5rem;
-                min-width: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            #details-container>.detail * {
-                margin: 0;
-            }
-
             .hide {
                 display: none;
             }
@@ -125,6 +115,7 @@
             .rating > label:hover ~ label,
             .rating > input.radio-btn:checked ~ label {
                 color: transparent;
+                filter: drop-shadow(0px 0px 1px black);
             }
 
             .rating > label:hover:before,
@@ -134,7 +125,16 @@
                 content: "\2605";
                 position: absolute;
                 left: 0;
-                color: #FFD700;
+            }
+
+            .rating > input.radio-btn:checked ~ label:before,
+            .rating > input.radio-btn:checked ~ label:before {
+                color: var(--yellow-2);
+            }
+
+            .rating > label:hover:before,
+            .rating > label:hover ~ label:before {
+                color: var(--yellow-1);
             }
         </style>
     </head>
@@ -145,26 +145,26 @@
                 <h1><?=$data['title']?></h1>
             </header>
 
-            <div id="details-container">
+            <div class="details-container" style="justify-content: center;">
                 <div class="detail">
                     <?php echo file_get_contents($dir['img'] . "calendar-icon.svg"); ?>
                     <p style="text-wrap: nowrap;" class="center">
                         <?php 
-                            if(isset($data['date_start']))
+                            if(isset($data['event_start']))
                             {
-                                $startTime = date("F j, g:ia", strtotime($data['date_start']));
+                                $startTime = date("F j, g:ia", strtotime($data['event_start']));
                                 echo ($startTime);
-                            }   
-                            if(isset($data['date_end']))
+                            }
+                            if(isset($data['event_end']))
                             {
                                 // If the end date is more than 1 day after the start date, display the end date
-                                if (date("Y-m-d", strtotime($data['date_start'])) != date("Y-m-d", strtotime($data['date_end'])))
+                                if (date("Y-m-d", strtotime($data['event_start'])) != date("Y-m-d", strtotime($data['event_end'])))
                                 {
-                                    $endTime = date("F j, g:ia", strtotime($data['date_end']));
+                                    $endTime = date("F j, g:ia", strtotime($data['event_end']));
                                 }
                                 else
                                 {
-                                    $endTime = date("g:ia", strtotime($data['date_end']));
+                                    $endTime = date("g:ia", strtotime($data['event_end']));
                                 }
                                 echo " - " . ($endTime);
                             }
@@ -179,28 +179,46 @@
                         </a>
                     </div>
                 <?php endif; ?>
+                <?php if (isset($data['contact']) && $data['contact'] != ""): ?>
+                    <div class="detail">
+                        <?php echo file_get_contents($dir['img'] . "contact-icon.svg"); ?>
+                        <p class="center"><?=$data['contact']?></p>
+                    </div>
+                <?php endif; ?>
+                <?php if (isset($data['phone']) && $data['phone'] != ""): ?>
+                    <div class="detail">
+                        <?php echo file_get_contents($dir['img'] . "phone-icon.svg"); ?>
+                        <a href="tel:<?=$data['phone']?>"><p class="center"><?=$data['phone']?></p></a>
+                    </div>
+                <?php endif; ?>
+                <?php if (isset($data['email']) && $data['email'] != ""): ?>
+                    <div class="detail">
+                        <?php echo file_get_contents($dir['img'] . "email-icon.svg"); ?>
+                        <a href="mailto:<?=$data['email']?>"><p class="center"><?=$data['email']?></p></a>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <section>
-                <p class="center"><?=$data['details']?></p>
+                <?=$data['details']?>
             </section>
 
-            <div>
-                <div id="map">
-                </div>
-                
-            </div>
-            <br><br>
+            <?php if (isset($data['latitude']) && isset($data['longitude'])): ?>
+                <div id="map"></div>
+            <?php endif; ?>
 
             <?php
                 // Check if the user has already reviewed this event
                 $query = "SELECT * FROM event_ratings R, event_comments C WHERE R.event_id = ? AND R.user_id = ? AND C.event_id = ? AND C.user_id = ?";
+                $queryText[] = $query;
                 $query = $conn->prepare($query);
                 $query->bind_param("iiii", $event_id, $_SESSION['user']['id'], $event_id, $_SESSION['user']['id']);
                 $query->execute();
                 $data_review = $query->get_result()->fetch_assoc();
             ?>
-
+            <br>
+            <div class="break-line"></div>
+            <br>
             <form method="POST">
                 <div>
                     <label for="rating">Rating:</label>
@@ -232,13 +250,19 @@
                 <div>
                     <label for="comment">Comment</label>
                     <div>
-                        <textarea style="resize: vertical;" name="comment" rows="4"><?php if (isset($data_review['comment'])) echo $data_review['comment']; ?></textarea>
+                        <textarea resizeable name="comment" rows="4"><?php if (isset($data_review['comment'])) echo $data_review['comment']; ?></textarea>
                         <span></span>
                     </div>
                 </div>
                 <input type="submit" name="submit" value="<?=(isset($data_review)) ? "Update review" : "Submit review" ?>">
+                <?php if (isset($data_review)): ?>
+                    <input type="submit" name="delete" value="Delete Review"></a>
+                <?php endif; ?>
             </form>
+            <br>
             <div class="break-line"></div>
+            <br>
+            <h3>User Reviews</h3>
             <?php
                 $query = "SELECT U.username, R.rating, C.comment, C.date 
                     FROM event_comments C, event_ratings R, users U 
@@ -247,18 +271,44 @@
                     AND U.id = C.user_id 
                     AND U.id = R.user_id 
                     ORDER BY C.date DESC";
+                $queryText[] = $query;
                 $query = $conn->prepare($query);
                 $query->bind_param("ii", $event_id, $event_id);
                 $query->execute();
                 $data_comments = $query->get_result();
 
                 if ($data_comments->num_rows > 0):
-            ?>                
-                <h3>Comments</h3>
+            ?>
+            <style>
+                .comment {
+                    border-radius: 0.5rem;
+                    padding: 1rem;
+                }
+
+                .comment h4 {
+                    margin: 0;
+                }
+
+                .comment-rating {
+                    font-size: 1.5rem;
+                }
+
+                .comment p {
+                    margin: 0;
+                }
+            </style>       
                 <div id="comments-container">
                     <?php while ($comment = $data_comments->fetch_assoc()): ?>
                         <section class="comment">
-                            <h4><?=$comment['username']?> - <?=date("F j, g:ia", strtotime($comment['date']));?></h4>
+                            <h4><?=$comment['username']?></h4>
+                            <div class="comment-rating">
+                                <?php for ($i = 0; $i < $comment['rating']; $i++): ?>
+                                    <span style="color: #FFD700; text-shadow: 0px 0px 2px var(--highEmphasis);">&#9733;</span>
+                                <?php endfor; ?>
+                                <?php for ($i = $comment['rating']; $i < 5; $i++): ?>
+                                    <span style="color: var(--highEmphasis);">&#9734;</span>
+                                <?php endfor; ?>
+                            </div>
                             <p><?=$comment['comment']?></p>
                         </section>
                     <?php endwhile; ?>
@@ -302,17 +352,12 @@
 
         map.addControl(new ourCustomControl());
 
-        function displayLocation() {
-            mapContainer.hidden = !mapContainer.hidden;
 
-            if (!mapLoaded)
-            {
-                mapLoaded = true;
-                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                }).addTo(map);
-            }
-        }
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+
     </script>
 </html>

@@ -10,10 +10,8 @@
         return;
     }
     
-    $rso_id = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
-    if (isset($rso_id))
+    if (isset($_GET['id']))
     {
-        $rso_id = explode("=", $rso_id)[1];
         include $dir['views'] . '/organizations/view.php';
     }
     else

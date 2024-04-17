@@ -1,5 +1,6 @@
-
 <?php
+    // upload.php by https://www.w3schools.com/php/php_file_upload.asp
+
     $target_dir = $_SERVER["DOCUMENT_ROOT"] . "/uploads/";
     $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
     $uploadOk = true;
@@ -24,6 +25,7 @@
         $counter += rand(0, 100);
         $target_file = $target_dir . $counter . basename($_FILES["fileToUpload"]["name"]);
     }
+    $target_file = $target_dir . $counter . basename($_FILES["fileToUpload"]["name"]);
 
     // Check file size
     if ($_FILES["fileToUpload"]["size"] > 500000) 
@@ -49,7 +51,7 @@
     {
         if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) 
         {
-            return array("path" => $target_file, "name" => basename($_FILES["fileToUpload"]["name"]), "type" => $imageFileType, "size" => $_FILES["fileToUpload"]["size"]);
+            return array("path" => $target_file, "name" => $counter . basename($_FILES["fileToUpload"]["name"]), "type" => $imageFileType, "size" => $_FILES["fileToUpload"]["size"]);
         }
         else
         {

@@ -15,8 +15,7 @@
         return;
     }
 
-    $rso_id = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
-    if (isset($rso_id))
+    if (isset($_GET['id']))
     {
         include $dir['views'] . 'events/view.php';
         return;

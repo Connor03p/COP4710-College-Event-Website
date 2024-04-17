@@ -1,0 +1,56 @@
+/* Theme style settings */
+:root
+{
+    --link: hsl(199, 50%, 65%);
+    --focus: lightblue;
+    --primary: hsl(0, 0%, 100%);
+
+    --background: hsl(0, 0%, 7%);
+    --surface: hsl(0, 0%, 7%);
+    --level-1: hsl(0, 0%, 12%);
+    --level-2: hsl(0, 0%, 18%);
+    --level-3: hsl(0, 0%, 22%);
+
+    --yellow-1: hsl(48, 100%, 75%);
+    --yellow-2: hsl(48, 100%, 50%);
+
+    --highEmphasis: hsl(0, 0%, 87%);
+    --mediumEmphasis: hsl(0, 0%, 65%);
+    --lowEmphasis: hsl(0, 0%, 58%);
+    --onLight: hsl(0, 0%, 0%);
+
+    --critical: hsl(350, 50%, 50%);
+    --success: hsl(100, 86%, 66%);
+    --error: hsl(350, 50%, 60%);
+    --onError: hsl(0, 0%, 4%);
+}
+
+@media (prefers-color-scheme: light) {
+    :root
+    {
+        --link: hsl(215, 98%, 37%);
+        --focus: lightblue;
+        --primary: hsl(48, 100%, 50%);
+    
+        --background: hsl(0, 0%, 95%);
+        --surface: hsl(0, 0%, 95%);
+        --level-1: hsl(0, 0%, 90%);
+        --level-2: hsl(0, 0%, 86%);
+        --level-3: hsl(0, 0%, 82%);
+    
+        --highEmphasis: hsl(0, 0%, 5%);
+        --mediumEmphasis: hsl(0, 0%, 15%);
+        --lowEmphasis: hsl(0, 0%, 35%);
+        --onLight: hsl(0, 0%, 100%);
+    
+        --critical: hsl(350, 50%, 50%);
+        --success: hsl(100, 86%, 66%);
+        --error: hsl(350, 50%, 60%);
+        --onError: hsl(0, 0%, 4%);
+    }
+
+    section, details, button
+    {
+        box-shadow: 0 0 2px 0px var(--lowEmphasis);
+    }
+}

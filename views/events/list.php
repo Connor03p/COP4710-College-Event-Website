@@ -1,16 +1,111 @@
 <?php
-    $query = "SELECT e.id, e.title, e.summary
-    FROM events e
-    LEFT JOIN public_events pe ON e.id = pe.event_id
-    LEFT JOIN private_events pv ON e.id = pv.event_id
-    LEFT JOIN rso_events re ON e.id = re.event_id
-    LEFT JOIN university_students us ON pv.university_id = us.university_id
-    LEFT JOIN rso_students rs ON re.rso_id = rs.rso_id
-    LEFT JOIN students s ON us.student_id = s.user_id OR rs.student_id = s.user_id
-    WHERE pe.event_id IS NOT NULL OR pv.university_id IS NULL OR rs.rso_id IS NULL OR s.user_id = ?
-    ";
+    $queryText = [];
+    $query = "
+        SELECT 
+            E.id, E.title, E.summary, E.event_start, E.event_end, 
+            L.description AS location_name, L.latitude, L.longitude 
+        FROM 
+            events E
+        LEFT JOIN 
+            locations L ON E.location_id = L.id
+        LEFT JOIN 
+            public_events PE ON E.id = PE.event_id
+        LEFT JOIN 
+            private_events UE ON E.id = UE.event_id AND UE.university_id = (SELECT university_id FROM university_members WHERE user_id = ?)
+        LEFT JOIN 
+            rso_events RE ON E.id = RE.event_id AND RE.rso_id IN (SELECT rso_id FROM rso_members WHERE user_id = ?)
+        WHERE 
+            (
+                PE.event_id IS NOT NULL
+                OR UE.event_id IS NOT NULL
+                OR RE.event_id IS NOT NULL
+            )
+        ";
+    $params = [];
+    $params[] = $_SESSION['user']['id'];
+    $params[] = $_SESSION['user']['id'];
+
+    if (isset($_GET['submit']))
+    {
+        $restoreInput = $_GET;
+
+        if (isset($_GET['visibility']) && !empty($_GET['visibility']))
+        {
+            switch ($_GET['visibility'])
+            {
+                case "Public":
+                    $query .= " AND PE.event_id IS NOT NULL";
+                    break;
+
+                case "University":
+                    $query .= " AND UE.event_id IS NOT NULL";
+                    break;
+
+                case "Organization":
+                    $query .= " AND RE.event_id IS NOT NULL";
+                    break;
+            }
+        }
+
+        if (isset($_GET['search']) && !empty($_GET['search']))
+        {
+            $query .= " AND (title LIKE ? OR summary LIKE ?)";
+            $params[] = "%" . $_GET['search'] . "%";
+            $params[] = "%" . $_GET['search'] . "%";
+        }
+
+        if (isset($_GET['category']) && !empty($_GET['category']))
+        {
+            $query .= " AND category = ?";
+            $params[] = $_GET['category'];
+        }
+
+        if (isset($_GET['timeframe']) && !empty($_GET['timeframe']) && isset($_GET['date']) && !empty($_GET['date']))
+        {
+            $query .= " AND (event_start BETWEEN ? AND ? OR event_end BETWEEN ? AND ?)";
+
+            if ($_GET['timeframe'] == "Day")
+            {
+                if (isset($_GET['date']) && !empty($_GET['date']))
+                {
+                    $date = new DateTime($_GET['date']);
+                    $start = $date->format("Y-m-d");
+                    $end = $date->format("Y-m-d");
+                }
+            }
+            else if ($_POST['timeframe'] == "Week")
+            {
+                if (isset($_GET['date']) && !empty($_GET['date']))
+                {
+                    $date = new DateTime($_POST['date']);
+                    $start = $date->format("Y-m-d");
+                    $date->modify("+6 days");
+                    $end = $date->format("Y-m-d");
+                }
+            }
+            else if ($_GET['timeframe'] == "Month")
+            {
+                if (isset($_GET['date']) && !empty($_GET['date']))
+                {
+                    $date = new DateTime($_GET['date']);
+                    $start = $date->format("Y-m-01");
+                    $end = $date->format("Y-m-t");
+                }
+            }
+
+            $params[] = $start . " 00:00:00";
+            $params[] = $end . " 23:59:59";
+            $params[] = $start . " 00:00:00";
+            $params[] = $end . " 23:59:59";
+        }
+    }
+
+    $query .= " ORDER BY event_start ASC";
+
+    $queryText[] = $query;
     $query = $conn->prepare($query);
-    $query->bind_param("i", $_SESSION['user']['university_id']);
+    if (!empty($params))
+        $query->bind_param(str_repeat("s", count($params)), ...$params);
     $query->execute();
     $data_events = $query->get_result();
 ?>
@@ -19,7 +114,7 @@
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>View all events</title>
     <meta name="description" content="">
     <link rel="stylesheet" href="<?=$dir['domain']?>/style.css">
     <style>
@@ -35,33 +130,77 @@
             width: unset;
             min-width: 0;
         }
-
-        #filter-button {
-            height: 2.2rem;
-            width: 2.2rem;
-        }
     </style>
 </head>
 
 <body>
     <main>
         <form id="filter-container">
-            <input type="search" id="filter-search" placeholder="Search Events">
-            <select id="filter-tags">
-                <option value="" disabled selected hidden>Tags</option>
-                <option value="tag1">Tag1</option>
-                <option value="tag2">Tag2</option>
-                <option value="tag3">Tag3</option>
+            <input type="search" name="search" id="filter-search" placeholder="Search Events"
+                value="<?=isset($restoreInput['search']) ? $restoreInput['search'] : ""?>"
+            >
+            
+            <select id="filter-privacy" name="visibility">
+                <option value="" disabled selected hidden>Visibility</option>
+                <option value="All">All</option>
+                <option value="Public"
+                    <?=(isset($restoreInput['visibility']) && $restoreInput['visibility'] == "Public") ? "selected" : ""?>
+                >Public</option>
+                <option value="University"
+                    <?=(isset($restoreInput['visibility']) && $restoreInput['visibility'] == "University") ? "selected" : ""?>
+                >University</option>
+                <option value="Organization"
+                    <?=(isset($restoreInput['visibility']) && $restoreInput['visibility'] == "Organization") ? "selected" : ""?>
+                >Organization</option>
             </select>
-            <select id="filter-timeframe">
+            <script>
+                const filterPrivacy = document.getElementById("filter-privacy");
+                filterPrivacy.onchange = function()
+                {
+                    if (filterPrivacy.value == "All")
+                    {
+                        filterPrivacy.value = "";
+                    }
+                }
+            </script>
+            
+            <?php
+                $query = "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'events' AND COLUMN_NAME = 'category'";
+                $query = $conn->prepare($query);
+                $query->execute();
+                $result = $query->get_result()->fetch_assoc();
+                $filter_categories = explode("','", substr($result['COLUMN_TYPE'], 6, -2));
+            ?>
+            <select id="filter-category" name="category">
+                <option value="" disabled selected hidden>Category</option>
+                <option value="All">All</option>
+                <?php foreach ($filter_categories as $category): ?>
+                    <option value="<?=$category?>"
+                        <?=(isset($restoreInput['category']) && $restoreInput['category'] == $category) ? "selected" : ""?>
+                    ><?=$category?></option>
+                <?php endforeach; ?>
+            </select>
+            <script>
+                const filterCategory = document.getElementById("filter-category");
+                filterCategory.onchange = function()
+                {
+                    if (filterCategory.value == "All")
+                    {
+                        filterCategory.value = "";
+                    }
+                }
+            </script>
+            
+            <select id="filter-timeframe" name="timeframe">
                 <option value="Day" selected>Day</option>
                 <option value="Week">Week</option>
                 <option value="Month">Month</option>
             </select>
-            <input id="filter-date" type="date">
-            <input type="image" name="filter" id="filter-button"
-                src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="var(--link)" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.--><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>'>
-            </input>
+            <input id="filter-date" type="date" name="date"
+                value="<?=isset($restoreInput['date']) ? $restoreInput['date'] : ""?>"
+            >
+            
+            <input type="submit" name="submit" id="filter-button" value="Search" />
         </form>
 
 
@@ -70,9 +209,49 @@
                 <?php
                 while ($row = $data_events->fetch_assoc()) {
                     echo "<a href='" . $dir['domain'] . "/events?id=" . $row['id'] . "'>";
-                    echo "  <section>";
+                    echo "  <section class='event'>";
                     echo "      <h3 class='event-title'>" . $row['title'] . "</h3>";
-                    echo "      <p class='event-summary'>" . $row['summary'] . "</p>";
+                    echo "      <div class='details-container'>";
+
+                    // Display the event date
+                    if (isset($row['event_start']) || isset($row['event_end']))
+                    {
+                        echo "          <div class='detail'>";
+                        echo file_get_contents($dir['img'] . "calendar-icon.svg");
+                        echo "              <p>";
+                            if(isset($row['event_start']))
+                            {
+                                $startTime = date("F j, g:ia", strtotime($row['event_start']));
+                                echo ($startTime);
+                            }   
+                            if(isset($row['event_end']))
+                            {
+                                // If the end date is more than 1 day after the start date, display the end date
+                                if (date("Y-m-d", strtotime($row['event_start'])) != date("Y-m-d", strtotime($row['event_end'])))
+                                {
+                                    $endTime = date("F j, g:ia", strtotime($row['event_end']));
+                                }
+                                else
+                                {
+                                    $endTime = date("g:ia", strtotime($row['event_end']));
+                                }
+                                echo " - " . ($endTime);
+                            }
+                        echo "              </p>";
+                        echo "          </div>";
+                    }
+
+                    // Display the event location
+                    if (isset($row['location_name']))
+                    {
+                        echo "          <div class='detail'>";
+                        echo file_get_contents($dir['img'] . "location-icon.svg");
+                        echo "              <p class='event-location'>" . $row['location_name'] . "</p>";
+                        echo "          </div>";
+                    }
+                    
+                    echo "      </div>";
+                    echo "      <div class='event-summary'>" . $row['summary'] . "</div>";
                     echo "  </section>";
                     echo "</a>";
                 }
@@ -89,8 +268,6 @@
                 </div>
             <?php endif; ?>
         </div>
-
-        <?php include $dir['views'] . 'footer.php'; ?>
     </main>
 
     <script>
@@ -125,6 +302,7 @@
         });
 
     </script>
+
 </body>
 
 </html>
